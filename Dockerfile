@@ -84,8 +84,6 @@ ENV BASE_URL= \
 
 COPY --from=1 /usr/src/app /usr/src/app/
 
-RUN ls -l /usr/src/app
-
 WORKDIR /usr/src/app
 
 EXPOSE 3000
