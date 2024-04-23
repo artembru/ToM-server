@@ -57,7 +57,9 @@ export default class TwakeServer {
           ) {
             const appServiceApi = new AppServiceAPI(this, confDesc, this.logger)
             this.endpoints.use(appServiceApi.router.routes)
+            this.logger.debug('Add application server')
           }
+          this.logger.debug('End of initialization')
           resolve(true)
         })
         .catch((error) => {
@@ -98,8 +100,11 @@ export default class TwakeServer {
   private async _initServer(confDesc?: ConfigDescription): Promise<boolean> {
     try {
       await this.idServer.ready
+      this.logger.debug('idServer initialized')
       await this.matrixDb.ready
+      this.logger.debug('Connected to Matrix DB')
       await initializeDb(this)
+      this.logger.debug('Database initialized')
 
       const vaultServer = new VaultServer(
         this.idServer.db,
@@ -154,6 +159,7 @@ export default class TwakeServer {
       Object.keys(wellKnown.api.get).forEach((k) => {
         this.endpoints.get(k, wellKnown.api.get[k])
       })
+      this.logger.debug('Endpoints added')
 
       return true
     } catch (error) {

@@ -16,7 +16,7 @@ const appServerConf = {
   push_ephemeral: process.env.PUSH_EPHEMERAL || true
 }
 
-let conf = {
+const conf = {
   ...appServerConf,
   additional_features: process.env.ADDITIONAL_FEATURES || false,
   cron_service: process.env.CRON_SERVICE || true,
@@ -75,20 +75,24 @@ if (process.argv[2] === 'generate') {
   const appServer = new AppServer(appServerConf)
 } else {
   const app = express()
+  const tomServer = new TomServer(conf)
+  tomServer.logger.debug('Create TomServer')
   const trustProxy = process.env.TRUSTED_PROXIES
     ? process.env.TRUSTED_PROXIES.split(/\s+/)
     : []
   if (trustProxy.length > 0) {
     conf.trust_x_forwarded_for = true
+    tomServer.logger.debug(`Set trusted proxies to: ${trustProxy.join(', ')}`)
     app.set('trust proxy', ...trustProxy)
   }
-  const tomServer = new TomServer(conf)
   const promises = [tomServer.ready]
+  tomServer.logger.debug('Waiting for server initialization')
 
   if (process.env.CROWDSEC_URI) {
     if (!process.env.CROWDSEC_KEY) {
       throw new Error('Missing CROWDSEC_KEY')
     }
+    tomServer.logger.debug('Add Crowdsec protection')
     promises.push(
       new Promise((resolve, reject) => {
         import('@crowdsec/express-bouncer')
@@ -121,6 +125,8 @@ if (process.argv[2] === 'generate') {
     })
   )
 
+  tomServer.logger.debug('Loading langing page')
+
   app.get(
     '/',
     createRequestHandler({
@@ -130,8 +136,10 @@ if (process.argv[2] === 'generate') {
     })
   )
 
+  tomServer.logger.debug(`Length =${promises.length}`)
   Promise.all(promises)
     .then(() => {
+      tomServer.logger.debug('Server initialization done')
       app.use(tomServer.endpoints)
       const port = process.argv[2] != null ? parseInt(process.argv[2]) : 3000
       console.log(`Listening on port ${port}`)
